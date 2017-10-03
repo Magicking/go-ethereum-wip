@@ -45,8 +45,9 @@ type tmplMethod struct {
 // tmplSource is language to template mapping containing all the supported
 // programming languages the package can generate to.
 var tmplSource = map[Lang]string{
-	LangGo:   tmplSourceGo,
-	LangJava: tmplSourceJava,
+	LangGo:      tmplSourceGo,
+	LangJava:    tmplSourceJava,
+	LangOpenAPI: tmplSourceOpenAPI,
 }
 
 // tmplSourceGo is the Go source template use to generate the contract binding
@@ -366,4 +367,111 @@ import org.ethereum.geth.internal.*;
 		{{end}}
 	}
 {{end}}
+`
+
+// tmplSourceOpenAPI is the OpenAPI source template use to generate OpenAPI specification.
+const tmplSourceOpenAPI = `# Code generated - DO NOT EDIT.
+# This file is a generated binding and any manual changes will be lost.
+
+swagger: '2.0'
+info:
+  title: {{.Package}}
+produces:
+  - application/json
+consumes:
+  - application/json
+{{range $contract := .Contracts}}
+# ABI: {{.InputABI}}
+paths:
+  /deploy{{.Type}}:
+    post:
+      operationId: deploy{{.Type}}
+      description: |
+        Deploy{{.Type}} deploys a new Ethereum contract, binding an instance of {{.Type}} to it.
+      parameters:{{range .Constructor.Inputs}}
+        - name: {{.Name}}
+          type: {{bindtype .Type}}
+          required: true{{end}}
+      response:
+        '200':
+          schema:
+          $ref: '#/definitions/Address'
+        default:
+          description: Unexpected error
+          schema:
+          $ref: '#/definitions/Error'
+{{range .Calls}}
+  /{{.Normalized.Name}}:
+    get:
+      operationId: get{{.Normalized.Name}}
+      description: |
+        {{.Normalized.Name}} is a free data retrieval call binding the contract method 0x{{printf "%x" .Original.Id}}.
+        Solidity: {{.Original.String}}
+      parameters:{{range .Normalized.Inputs}}
+        - name: {{.Name}}
+          type: {{bindtype .Type}}
+          required: true{{end}}
+      response:
+        '200':
+          schema:
+          description: Get{{.Normalized.Name}}Response object.
+          $ref: '#/definitions/Get{{.Normalized.Name}}Response'
+        default:
+          description: Unexpected error
+          schema:
+          $ref: '#/definitions/Error'{{end}}
+{{range .Transacts}}
+  /{{.Normalized.Name}}:
+    post:
+      operationId: set{{.Normalized.Name}}
+      description: |
+        {{.Normalized.Name}} is a paid mutator transaction binding the contract method 0x{{printf "%x" .Original.Id}}.
+        Solidity: {{.Original.String}}
+      parameters:{{range .Normalized.Inputs}}
+        - name: {{.Name}}
+          type: {{bindtype .Type}}
+          required: true{{end}}
+      response:
+        '200':{{ if (len .Normalized.Outputs) ne 0 }}
+          schema:
+          description: Post{{.Normalized.Name}}Response object.
+          $ref: '#/definitions/Post{{.Normalized.Name}}Response'{{end}}
+        default:
+          description: Unexpected error
+          schema:
+          $ref: '#/definitions/Error'{{end}}{{end}}
+
+definitions:{{range $contract := .Contracts}}{{range .Calls}}
+  Get{{.Normalized.Name}}Response:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Outputs}}
+        'arg{{$i}}':
+        type: {{bindtype .Type}}
+      {{end}}{{else}}{{range .Normalized.Outputs}}
+        '{{.Name}}':
+        type: {{bindtype .Type}}{{end}}{{end}}{{end}}
+{{range .Transacts}}{{ if (len .Normalized.Outputs) ne 0 }}
+  Post{{.Normalized.Name}}Response:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Outputs}}
+      'arg{{$i}}':
+      type: {{bindtype .Type}}
+    {{end}}{{else}}{{range .Normalized.Outputs}}
+      '{{.Name}}':
+      type: {{bindtype .Type}}{{end}}{{end}}{{end}}{{end}}{{end}}
+  Error:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      fields:
+        type: string
+  Address:
+    type: string
 `

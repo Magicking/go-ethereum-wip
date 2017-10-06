@@ -446,7 +446,14 @@ paths:
           schema:
             $ref: '#/definitions/Error'{{end}}{{end}}
 
-definitions:{{range $contract := .Contracts}}{{range .Calls}}
+definitions:{{range $contract := .Contracts}}{{range .Calls}}{{ if (len .Normalized.Inputs) ne 0 }}
+  Get{{.Normalized.Name}}Parameters:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Inputs}}
+      'arg{{$i}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Inputs}}
+      '{{.Name}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{end}}{{end}}
   Get{{.Normalized.Name}}Response:
     type: object
     properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Outputs}}
@@ -454,7 +461,14 @@ definitions:{{range $contract := .Contracts}}{{range .Calls}}
         $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Outputs}}
       '{{.Name}}':
         $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{end}}{{end}}
-{{range .Transacts}}{{ if (len .Normalized.Outputs) ne 0 }}
+{{range .Transacts}}{{ if (len .Normalized.Inputs) ne 0 }}
+  Post{{.Normalized.Name}}Parameters:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Inputs}}
+      'arg{{$i}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Inputs}}
+      '{{.Name}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{end}}{{end}}{{ if (len .Normalized.Outputs) ne 0 }}
   Post{{.Normalized.Name}}Response:
     type: object
     properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Outputs}}

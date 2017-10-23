@@ -781,6 +781,9 @@ func (sub *ClientSubscription) forward() (err error, unsubscribeServer bool) {
 
 func (sub *ClientSubscription) unmarshal(result json.RawMessage) (interface{}, error) {
 	val := reflect.New(sub.etype)
+	if result[0] == '[' {
+		result = result[1 : len(result)-1]
+	}
 	err := json.Unmarshal(result, val.Interface())
 	return val.Elem().Interface(), err
 }

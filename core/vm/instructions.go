@@ -389,6 +389,25 @@ func opReturnDataCopy(pc *uint64, evm *EVM, contract *Contract, memory *Memory, 
 	return nil, nil
 }
 
+func opSigHash(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
+	/* TODO(6120)
+	// Obtain transaction in the EVM context
+	// or
+	// Reconstruct transaction
+	// Remove the signature part from the data field
+	// stack.push(Keccak256(rlp(tx \ {data_sig})))
+	*/
+	data := memory.Data()
+	hash := crypto.Keccak256(data)
+
+	if evm.vmConfig.EnablePreimageRecording {
+		evm.StateDB.AddPreimage(common.BytesToHash(hash), data)
+	}
+
+	stack.push(new(big.Int).SetBytes(hash))
+	return nil, nil
+}
+
 func opExtCodeSize(pc *uint64, evm *EVM, contract *Contract, memory *Memory, stack *Stack) ([]byte, error) {
 	a := stack.pop()
 

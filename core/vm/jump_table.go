@@ -54,7 +54,23 @@ var (
 	frontierInstructionSet  = NewFrontierInstructionSet()
 	homesteadInstructionSet = NewHomesteadInstructionSet()
 	byzantiumInstructionSet = NewByzantiumInstructionSet()
+	shardingInstructionSet  = NewShardingInstructionSet()
 )
+
+// NewShardingInstructionSet returns the frontier, homestead,
+// byzantium and sharding instructions.
+func NewShardingInstructionSet() [256]operation {
+	// instructions that can be executed during the byzantium phase.
+	instructionSet := NewByzantiumInstructionSet()
+	/* TODO(6l20) set correct gas cost and memory size */
+	instructionSet[SIGHASH] = operation{
+		execute:       opSigHash,
+		gasCost:       constGasFunc(GasQuickStep),
+		validateStack: makeStackFunc(0, 1),
+		valid:         true,
+	}
+	return instructionSet
+}
 
 // NewByzantiumInstructionSet returns the frontier, homestead and
 // byzantium instructions.

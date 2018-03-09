@@ -33,6 +33,9 @@ const (
 	GasReturn       uint64 = 0
 	GasStop         uint64 = 0
 	GasContractByte uint64 = 200
+
+	// TODO(6120) Validte the 32000 constants, from py-evm
+	GasCreate2 uint64 = 32000
 )
 
 // calcGas returns the actual gas cost of the call.

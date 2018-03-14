@@ -364,11 +364,16 @@ Work in progress.
 
 ## Protocol Modifications
 
-### Protocol Primitives: Collations, Blocks, Transactions, Accounts
+### Protocol Primitives: Collations, Blocks, Transactions
 
-(Outline the interfaces for each of these constructs, mention crucial changes in types or receiver methods in Go for each, mention transaction access lists)
+(Outline the interfaces for each of these constructs, mention crucial changes in types or receiver methods in Go for each)
 
-Work in progress.
+### Account redesign
+
+Account structure are redesigned for sharding, in the pre-sharding era accounts comes in two flavors, account without EVM Code usually operated by external actor and account with code usually autonomous object or _contract_.
+The goal is to redesign accounts to separate functionalities out of the core protocol to allow the factorization of account into one account.
+
+(Explain why it is better to have separation, mention easier statefullness, new opcodes (at least SIGHASH, PAYGAS, CREATE2, CREATE_COPY ?), access lists, read/write gas paiement modification, new transaction format)
 
 ### The EVM: What You Need to Know
 

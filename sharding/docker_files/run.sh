@@ -7,14 +7,17 @@ password_file=/signer.password
 GENESIS_PATH=/genesis.json
 CORS_DOMAIN="*"
 
-modules="eth,shh,web3,admin,debug,miner,personal,txpool"
+modules="eth,shh,web3,net,admin,debug,miner,personal,txpool"
 gethcmd="/usr/local/bin/geth --datadir ${DATA_DIR}"
 
 echo "${PASSWORD}" > "${password_file}"
 
-if [ x"${NETWORK_ID}" == x ]; then
-  NETWORK_ID=1092
+if ! [ -f ${GENESIS_PATH} ]; then
+  echo "Genesis file not present, exiting"
+  exit 1
 fi
+
+NETWORK_ID=`grep -i chainId ${GENESIS_PATH} | sed -e 's:[^0-9]*::g'`
 
 import_genesis() {
   if [ -d "${DATA_DIR}"/geth/chaindata ]; then
@@ -62,11 +65,12 @@ collator ()
     echo "NODE_HOST environment variable not set"
     exit 1
   fi
+  import_key
   exec $gethcmd \
    sharding-collator --deposit \
    --networkid "${NETWORK_ID}" \
    --password ${password_file} \
-   --ipcpath "ws://${nodeip}:8546/"
+   "ws://${nodeip}:8546/"
 }
 
 geth ()

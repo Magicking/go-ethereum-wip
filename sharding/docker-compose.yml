@@ -1,12 +1,12 @@
 version: '2'
 services:
-  full-node:
+  geth:
     build:
       context: ../
     volumes:
         - ./docker_files/genesis.json:/genesis.json:ro
         - ./docker_files/run.sh:/run.sh:ro
-    entrypoint: /run.sh full-node
+    entrypoint: /run.sh geth
     environment:
       - PRIVATE_KEY=896d9877772a76c6d331f3d3c28f84331c2349dc817c682dc0b816107bff3b6c # 0x038FE564172439aB9EdCD492C8e886A26be99b3d
       - ETHERBASE=0x038FE564172439aB9EdCD492C8e886A26be99b3d
@@ -20,6 +20,7 @@ services:
     environment:
       - PRIVATE_KEY=896d9877772a76c6d331f3d3c28f84331c2349dc817c682dc0b816107bff3b6c # 0x038FE564172439aB9EdCD492C8e886A26be99b3d
       - ETHERBASE=0x038FE564172439aB9EdCD492C8e886A26be99b3d
+      - NODE_HOST=geth
     volumes:
         - ./docker_files/genesis.json:/genesis.json:ro
         - ./docker_files/run.sh:/run.sh:ro

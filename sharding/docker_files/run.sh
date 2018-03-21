@@ -44,7 +44,7 @@ import_key() {
 
 usage ()
 {
-  echo "/run.sh proposer | collator | full-node"
+  echo "/run.sh proposer | collator | geth"
   exit 1
 }
 
@@ -57,14 +57,19 @@ proposer ()
 
 collator ()
 {
-  collatorip=`nslookup "${COLLATOR_NAME}" 2>/dev/null | grep 'Address 1' | awk '{ print $3 }'`
-  if [ x"${collatorip}" == x ]; then
-    echo "COLLATOR environment variable not set"
+  nodeip=`nslookup "${NODE_HOST}" 2>/dev/null | grep 'Address 1' | awk '{ print $3 }'`
+  if [ x"${nodeip}" == x ]; then
+    echo "NODE_HOST environment variable not set"
     exit 1
   fi
+  exec $gethcmd \
+   sharding-collator --deposit \
+   --networkid "${NETWORK_ID}" \
+   --password ${password_file} \
+   --ipcpath "ws://${nodeip}:8546/"
 }
 
-fullnode ()
+geth ()
 {
   import_key
   import_genesis
@@ -93,7 +98,7 @@ fullnode ()
 case "$1" in 
   proposer) proposer ;;
   collator) collator ;;
-  full-node) fullnode ;;
+  geth) geth ;;
   *)
   usage
 ;;

@@ -52,8 +52,9 @@ type tmplEvent struct {
 // tmplSource is language to template mapping containing all the supported
 // programming languages the package can generate to.
 var tmplSource = map[Lang]string{
-	LangGo:   tmplSourceGo,
-	LangJava: tmplSourceJava,
+	LangGo:      tmplSourceGo,
+	LangJava:    tmplSourceJava,
+	LangOpenAPI: tmplSourceOpenAPI,
 }
 
 // tmplSourceGo is the Go source template use to generate the contract binding
@@ -519,4 +520,152 @@ import org.ethereum.geth.internal.*;
 		{{end}}
 	}
 {{end}}
+`
+
+// tmplSourceOpenAPI is the OpenAPI source template use to generate OpenAPI specification.
+const tmplSourceOpenAPI = `# Code generated - DO NOT EDIT.
+# This file is a generated binding and any manual changes will be lost.
+
+swagger: '2.0'
+info:
+  title: {{.Package}}
+  version: "0.0.1"
+produces:
+  - application/json
+consumes:
+  - application/json
+{{range $contract := .Contracts}}
+# ABI: {{.InputABI}}
+paths:
+  /deploy{{.Type}}:
+    post:
+      operationId: deploy{{.Type}}
+      description: |
+        Deploy{{.Type}} deploys a new Ethereum contract, binding an instance of {{.Type}} to it.
+      parameters:{{range .Constructor.Inputs}}
+        - name: {{.Name}}
+          in: query
+          type: string
+          required: true{{end}}
+      responses:
+        '200':
+          description: Return contract Address
+          schema:
+            $ref: '#/definitions/Address'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+{{range .Calls}}
+  /{{.Normalized.Name}}:
+    get:
+      operationId: get{{.Normalized.Name}}
+      description: |
+        {{.Normalized.Name}} is a free data retrieval call binding the contract method 0x{{printf "%x" .Original.Id}}.
+        Solidity: {{.Original.String}}{{ if (len .Normalized.Inputs) ne 0 }}
+      parameters:{{range .Normalized.Inputs}}
+        - name: {{.Name}}
+          in: query
+          type: string
+          required: true{{end}}{{end}}
+      responses:
+        '200':
+          description: Get{{.Normalized.Name}}Response object.
+          schema:
+            $ref: '#/definitions/Get{{.Normalized.Name}}Response'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'{{end}}
+{{range .Transacts}}
+  /{{.Normalized.Name}}:
+    post:
+      operationId: set{{.Normalized.Name}}
+      description: |
+        {{.Normalized.Name}} is a paid mutator transaction binding the contract method 0x{{printf "%x" .Original.Id}}.
+        Solidity: {{.Original.String}}{{ if (len .Normalized.Inputs) ne 0 }}
+      parameters:{{range .Normalized.Inputs}}
+        - name: {{.Name}}
+          in: query
+          type: string
+          required: true{{end}}{{end}}
+      responses:{{ if (len .Normalized.Outputs) ne 0 }}
+        '200':
+          description: Post{{.Normalized.Name}}Response object.
+          schema:
+            $ref: '#/definitions/Post{{.Normalized.Name}}Response'{{end}}
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'{{end}}{{end}}
+
+definitions:{{range $contract := .Contracts}}{{range .Calls}}{{ if (len .Normalized.Inputs) ne 0 }}
+  Get{{.Normalized.Name}}Parameters:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Inputs}}
+      'arg{{$i}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Inputs}}
+      '{{.Name}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{end}}{{end}}
+  Get{{.Normalized.Name}}Response:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Outputs}}
+      'arg{{$i}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Outputs}}
+      '{{.Name}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{end}}{{end}}
+{{range .Transacts}}{{ if (len .Normalized.Inputs) ne 0 }}
+  Post{{.Normalized.Name}}Parameters:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Inputs}}
+      'arg{{$i}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Inputs}}
+      '{{.Name}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{end}}{{end}}{{ if (len .Normalized.Outputs) ne 0 }}
+  Post{{.Normalized.Name}}Response:
+    type: object
+    properties:{{ if not .Structured }}{{range $i, $_ := .Normalized.Outputs}}
+      'arg{{$i}}':
+        $ref: '#/definitions/{{bindtype .Type}}'{{end}}{{else}}{{range .Normalized.Outputs}}
+      '{{.Name}}':
+      type: {{bindtype .Type}}{{end}}{{end}}{{end}}{{end}}{{end}}
+  Error:
+    type: object
+    required:
+      - code
+      - message
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      fields:
+        type: string
+  Address:
+    type: string
+  Addresses:
+    type: array
+    items:
+      $ref: '#/definitions/Address'
+  Binary:
+    type: string
+  Binaries:
+    type: array
+    items:
+      $ref: '#/definitions/Binary'
+  Bool:
+    type: boolean
+  Bools:
+    type: array
+    items:
+      $ref: '#/definitions/Bool'
+  String:
+    type: string
+  Strings:
+    type: array
+    items:
+      $ref: '#/definitions/String'
+  BigInt:
+    type: string
 `

@@ -39,6 +39,7 @@ const (
 	LangGo Lang = iota
 	LangJava
 	LangObjC
+	LangOpenAPI
 )
 
 // Bind generates a Go wrapper around a contract ABI. This wrapper isn't meant
@@ -160,8 +161,9 @@ func Bind(types []string, abis []string, bytecodes []string, pkg string, lang La
 // bindType is a set of type binders that convert Solidity types to some supported
 // programming language types.
 var bindType = map[Lang]func(kind abi.Type) string{
-	LangGo:   bindTypeGo,
-	LangJava: bindTypeJava,
+	LangGo:      bindTypeGo,
+	LangJava:    bindTypeJava,
+	LangOpenAPI: bindTypeOpenAPI,
 }
 
 // bindTypeGo converts a Solidity type to a Go one. Since there is no clear mapping
@@ -208,6 +210,58 @@ func bindTypeGo(kind abi.Type) string {
 	}
 }
 
+// bindTypeOpenAPI converts a Solidity type to a OpenAPI one.
+// See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md
+func bindTypeOpenAPI(kind abi.Type) string {
+	// Since there is no clear mapping from all Solidity types to OpenAPI ones
+	// (e.g. uint17), those that cannot be exactly mapped will use an
+	// intermediate type packed with closest type (e.g. uint256 w/ bytes).
+	stringKind := kind.String()
+
+	switch {
+	case strings.HasPrefix(stringKind, "address"):
+		parts := regexp.MustCompile(`address(\[[0-9]*\])?`).FindStringSubmatch(stringKind)
+		if len(parts) != 2 || parts[1] == "" {
+			return fmt.Sprintf("Address")
+		}
+		return fmt.Sprintf("Addresses")
+
+	case strings.HasPrefix(stringKind, "bytes"):
+		parts := regexp.MustCompile(`bytes([0-9]*)(\[[0-9]*\])?`).FindStringSubmatch(stringKind)
+		if len(parts) == 3 && parts[2] != "" {
+			return "Binaries"
+		}
+		return "Binary"
+
+	case strings.HasPrefix(stringKind, "int") || strings.HasPrefix(stringKind, "uint"):
+		parts := regexp.MustCompile(`(u)?int([0-9]*)(\[[0-9]*\])?`).FindStringSubmatch(stringKind)
+		if len(parts) != 4 || parts[3] == "" {
+			return fmt.Sprintf("BigInt")
+		}
+		return fmt.Sprintf("BigInts")
+
+	case strings.HasPrefix(stringKind, "bool"):
+		parts := regexp.MustCompile(`bool(\[[0-9]*\])?`).FindStringSubmatch(stringKind)
+		if len(parts) == 2 && parts[1] == "" {
+			return fmt.Sprintf("Bool")
+		}
+		return fmt.Sprintf("Bools")
+
+	case strings.HasPrefix(stringKind, "string"):
+		parts := regexp.MustCompile(`string(\[[0-9]*\])?`).FindStringSubmatch(stringKind)
+		if len(parts) != 2 {
+			return stringKind
+		}
+		if parts[1] == "" {
+			return fmt.Sprintf("String")
+		}
+		return fmt.Sprintf("Strings")
+
+	default:
+		return capitalise(stringKind)
+	}
+}
+
 // bindTypeJava converts a Solidity type to a Java one. Since there is no clear mapping
 // from all Solidity types to Java ones (e.g. uint17), those that cannot be exactly
 // mapped will use an upscaled type (e.g. BigDecimal).
@@ -239,15 +293,6 @@ func bindTypeJava(kind abi.Type) string {
 		parts := regexp.MustCompile(`(u)?int([0-9]*)(\[[0-9]*\])?`).FindStringSubmatch(stringKind)
 		if len(parts) != 4 {
 			return stringKind
-		}
-		switch parts[2] {
-		case "8", "16", "32", "64":
-			if parts[1] == "" {
-				if parts[3] == "" {
-					return fmt.Sprintf("int%s", parts[2])
-				}
-				return fmt.Sprintf("int%s[]", parts[2])
-			}
 		}
 		if parts[3] == "" {
 			return fmt.Sprintf("BigInt")
@@ -352,8 +397,9 @@ func namedTypeJava(javaKind string, solKind abi.Type) string {
 // methodNormalizer is a name transformer that modifies Solidity method names to
 // conform to target language naming concentions.
 var methodNormalizer = map[Lang]func(string) string{
-	LangGo:   capitalise,
-	LangJava: decapitalise,
+	LangGo:      capitalise,
+	LangJava:    decapitalise,
+	LangOpenAPI: decapitalise,
 }
 
 // capitalise makes the first character of a string upper case, also removing any
